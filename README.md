@@ -1,5 +1,10 @@
 # koe!
 
+[![Latest Release](https://img.shields.io/github/v/release/hanafusay/koe?style=flat-square&label=latest)](../../releases/latest)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue?style=flat-square&logo=apple)
+![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)
+![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen?style=flat-square)
+
 **koe** = 声（こえ）。macOS メニューバー常駐の音声入力ユーティリティです。
 `fn` を押している間だけ録音し、Apple のオンデバイス音声認識で音を書き起こした後、Gemini が文脈を理解して自然な文章に校正します。
 テキストを選択した状態なら音声で修正指示を出すこともできます。
@@ -56,11 +61,13 @@ DMG を開いて `Koe.app` を `Applications` フォルダにドラッグ＆ド�
 ### 使い方
 
 #### 音声入力（基本）
+
 - `fn` を押しながら話す
 - `fn` を離すと確定して貼り付け
 - メニューバーのアイコンから手動録音も可能
 
 #### 選択テキストの修正
+
 既に入力済みのテキストを音声指示で修正できます。
 
 1. 修正したいテキストを選択（`Cmd+A` やドラッグ等）
@@ -69,6 +76,7 @@ DMG を開いて `Koe.app` を `Applications` フォルダにドラッグ＆ド�
 4. `fn` を離すと Gemini が修正し、選択テキストを置換
 
 #### マイ指示書（個人用コンテキスト）
+
 Apple の音声認識は音の書き起こしに特化しているため、固有名詞や専門用語は音が近い別の単語に変換されることがあります。「マイ指示書」に用語や文体の好みを登録しておくと、Gemini が校正・修正時に自動で考慮し、正しく補正します（最大400文字）。
 
 ```
