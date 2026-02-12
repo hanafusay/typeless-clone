@@ -15,6 +15,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Sync version from git tag to Info.plist
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Syncing version: ${VERSION}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION}" Resources/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" Resources/Info.plist
+
       - name: Build release binary
         run: swift build -c release
 
