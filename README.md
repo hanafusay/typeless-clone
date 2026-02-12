@@ -1,9 +1,9 @@
-# TypelessClone
+# koe!
 
-macOS メニューバー常駐の音声入力アプリです。
+> 声が、そのまま文字になる。
+
+macOS メニューバー常駐の音声入力ユーティリティです。
 `fn` を押している間だけ録音し、離したら文字起こししてアクティブアプリに貼り付けます。
-
-![デモ](screenshots/demo.gif)
 
 ## インストール（DMG から）
 
@@ -11,22 +11,19 @@ macOS メニューバー常駐の音声入力アプリです。
 
 ### 1. ダウンロード
 
-[GitHub Releases](../../releases/latest) から最新の `TypelessClone-*.dmg` をダウンロードしてください。
+[GitHub Releases](../../releases/latest) から最新の `Koe-*.dmg` をダウンロードしてください。
 
 ### 2. アプリを Applications にコピー
 
-DMG を開いて `TypelessClone.app` を `Applications` フォルダにドラッグ＆ドロップします。
+DMG を開いて `Koe.app` を `Applications` フォルダにドラッグ＆ドロップします。
 
 ### 3. 初回起動（Gatekeeper の許可）
 
 このアプリはアドホック署名のため、初回起動時に macOS の Gatekeeper にブロックされます。
 
-1. `/Applications/TypelessClone.app` をダブルクリック → ブロックされるので **「完了」** を押す
+1. `/Applications/Koe.app` をダブルクリック → ブロックされるので **「完了」** を押す
 2. **システム設定 > プライバシーとセキュリティ** を開く
 3. 画面下部に表示される **「このまま開く」** をクリック
-
-![Gatekeeper の「このまま開く」](screenshots/gatekeeper-open-anyway.png)
-
 4. 確認ダイアログで **「開く」** をクリック（以降はダブルクリックで起動可能）
 
 ### 4. 権限を許可
@@ -52,30 +49,10 @@ DMG を開いて `TypelessClone.app` を `Applications` フォルダにドラッ
 - `fn` を離すと確定して貼り付け
 - メニューバーのアイコンから手動録音も可能
 
-## スクリーンショット
-
-### メニューバーUI
-
-待機中のメニュー表示です。`fn` 押下で録音開始、メニューから手動録音もできます。
-
-![メニューバーUI](screenshots/menubar.png)
-
-### 設定画面（Gemini校正）
-
-API キー、認識言語、校正プロンプトを設定できます。
-
-![設定画面（Gemini校正）](screenshots/settings-gemini.png)
-
-### 設定画面（権限と操作）
-
-録音キーの案内、権限ガイド、システム設定への導線です。
-
-![設定画面（権限と操作）](screenshots/settings-permissions.png)
-
 ## トラブルシュート
 
 - `アクセシビリティを許可してください` が消えない
-  - 許可対象が `/Applications/TypelessClone.app` か確認
+  - 許可対象が `/Applications/Koe.app` か確認
   - アプリ再起動を実施
 
 - `fn` で起動しない
@@ -86,9 +63,9 @@ API キー、認識言語、校正プロンプトを設定できます。
   - **ターミナル.app**（Launchpad > その他 > ターミナル）を開き、以下を 1 行ずつ貼り付けて実行してください
 
 ```bash
-tccutil reset Accessibility com.typelessclone.app
-tccutil reset ListenEvent com.typelessclone.app
-tccutil reset PostEvent com.typelessclone.app
+tccutil reset Accessibility com.koe.app
+tccutil reset ListenEvent com.koe.app
+tccutil reset PostEvent com.koe.app
 ```
 
 > 実行後、アプリを再起動すると権限ダイアログが再表示されます。
@@ -106,51 +83,34 @@ tccutil reset PostEvent com.typelessclone.app
 ### ソースからビルド
 
 ```bash
-git clone https://github.com/hanafusay/typeless-clone.git
-cd typeless-clone
+git clone https://github.com/hanafusay/koe.git
+cd koe
 cp .env.example .env
 # .env に GEMINI_API_KEY=... を設定
 ./build.sh
-open /Applications/TypelessClone.app
+open /Applications/Koe.app
 ```
 
 `build.sh` は release ビルド → .app バンドル作成 → コード署名 → `/Applications` にインストールまで一括で行います。
 
-Gatekeeper にブロックされた場合は、**システム設定 > プライバシーとセキュリティ** →「このまま開く」をクリックしてください。
-
-初回起動後、以下の権限を許可してください。
-- アクセシビリティ
-- 入力監視
-- マイク
-- 音声認識
-
 権限付与後にアプリを再起動:
 
 ```bash
-pkill -x TypelessClone; open /Applications/TypelessClone.app
+pkill -x Koe; open /Applications/Koe.app
 ```
 
 ### DMG の作成
 
-開発環境がない人向けに、ビルド済みの DMG を作成して配布できます。
-
 ```bash
 ./create-dmg.sh
-# dist/TypelessClone-1.0.dmg が生成される
+# dist/Koe-1.1.0.dmg が生成される
 ```
-
-この DMG をメール・チャット・ファイル共有などで配布してください。
 
 ### リリースの作り方
 
 タグを push すると GitHub Actions が自動で DMG を作成し、GitHub Releases に公開します。
 
-ワークフロー定義は [`.github/workflows/release.yml`](.github/workflows/release.yml) にあります。
-
 ```bash
-# Info.plist のバージョンを更新してからコミット
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
-
-手動で DMG を作る場合は `./create-dmg.sh` を実行してください。

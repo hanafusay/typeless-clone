@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:koe}",
+      "name": "Debug Koe",
+      "target": "Koe",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Koe"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:koe}",
+      "name": "Release Koe",
+      "target": "Koe",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Koe"
+    }
+  ]
+}

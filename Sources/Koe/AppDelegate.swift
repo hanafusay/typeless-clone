@@ -64,13 +64,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showPermissionAlert(for item: PermissionItem) {
         let alert = NSAlert()
-        alert.messageText = "TypelessClone に権限が必要です"
+        alert.messageText = "koe! に権限が必要です"
         alert.informativeText = """
         以下の権限を許可してください：
 
         ・\(item.title)（\(item.description)）
 
-        「\(item.title)を開く」を押して、TypelessClone を追加・許可してください。
+        「\(item.title)を開く」を押して、koe! を追加・許可してください。
         許可後、アプリを再起動してください。
         """
         alert.alertStyle = .warning

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct TypelessCloneApp: App {
+struct KoeApp: App {
     private static var didScheduleHotkeySetup = false
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -44,13 +44,13 @@ struct TypelessCloneApp: App {
             }
         }
         // Fallback to SF Symbol
-        return NSImage(systemSymbolName: "mic", accessibilityDescription: "TypelessClone")!
+        return NSImage(systemSymbolName: "mic", accessibilityDescription: "koe!")!
     }()
 
     @ViewBuilder
     private var menuContent: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("TypelessClone")
+            Text("koe!")
                 .font(.headline)
             Text(statusText)
                 .font(.caption)
@@ -100,8 +100,8 @@ struct TypelessCloneApp: App {
         let settingsView = SettingsView()
         let hostingController = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "TypelessClone 設定"
-        window.setContentSize(NSSize(width: 480, height: 560))
+        window.title = "koe! 設定"
+        window.setContentSize(NSSize(width: 480, height: 600))
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -110,30 +110,30 @@ struct TypelessCloneApp: App {
     }
 
     private func setupHotkey() {
-        Log.d("[TypelessCloneApp] setupHotkey")
+        Log.d("[KoeApp] setupHotkey")
         hotkeyManager.start(
             onRecordStart: { [self] in
-                Log.d("[TypelessCloneApp] onRecordStart callback")
+                Log.d("[KoeApp] onRecordStart callback")
                 handleStartRecording()
             },
             onRecordStop: { [self] in
-                Log.d("[TypelessCloneApp] onRecordStop callback")
+                Log.d("[KoeApp] onRecordStop callback")
                 handleStopRecording()
             }
         )
     }
 
     private func handleStartRecording() {
-        Log.d("[TypelessCloneApp] handleStartRecording called (isProcessing=\(isProcessing), isRecording=\(speechManager.isRecording))")
+        Log.d("[KoeApp] handleStartRecording called (isProcessing=\(isProcessing), isRecording=\(speechManager.isRecording))")
         guard !isProcessing else { return }
         guard !speechManager.isRecording else {
-            Log.d("[TypelessCloneApp] Ignored start because recording is already active")
+            Log.d("[KoeApp] Ignored start because recording is already active")
             return
         }
         do {
             speechManager.updateRecognizer(language: config.recognitionLanguage)
             try speechManager.startRecording()
-            Log.d("[TypelessCloneApp] Recording started via hotkey/manual")
+            Log.d("[KoeApp] Recording started via hotkey/manual")
             statusText = "録音中..."
 
             overlay.updateStatus(.recording)
@@ -141,7 +141,7 @@ struct TypelessCloneApp: App {
 
             startPartialTextUpdates()
         } catch {
-            Log.d("[TypelessCloneApp] handleStartRecording error: \(error.localizedDescription)")
+            Log.d("[KoeApp] handleStartRecording error: \(error.localizedDescription)")
             statusText = "エラー: \(error.localizedDescription)"
             overlay.updateStatus(.error, text: error.localizedDescription)
             dismissOverlayAfterDelay()
@@ -161,9 +161,9 @@ struct TypelessCloneApp: App {
     }
 
     private func handleStopRecording() {
-        Log.d("[TypelessCloneApp] handleStopRecording called (isRecording=\(speechManager.isRecording))")
+        Log.d("[KoeApp] handleStopRecording called (isRecording=\(speechManager.isRecording))")
         guard speechManager.isRecording else {
-            Log.d("[TypelessCloneApp] No active recording. Dismissing overlay for safety.")
+            Log.d("[KoeApp] No active recording. Dismissing overlay for safety.")
             statusText = "待機中"
             overlay.dismiss()
             return

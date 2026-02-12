@@ -14,5 +14,5 @@ xcuserdata/
 .env
 
 # Build artifacts
-TypelessClone.app
+Koe.app
 dist/

@@ -9,14 +9,14 @@ set -euo pipefail
 # -------------------------------------------------------
 # 共通変数
 # -------------------------------------------------------
-APP_NAME="TypelessClone"
-BUNDLE_ID="com.typelessclone.app"
+APP_NAME="Koe"
+BUNDLE_ID="com.koe.app"
 BUILD_DIR=".build/release"
 APP_BUNDLE="${APP_NAME}.app"
 CONTENTS_DIR="${APP_BUNDLE}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
-ENTITLEMENTS="Resources/TypelessClone.entitlements"
+ENTITLEMENTS="Resources/Koe.entitlements"
 DESIGNATED_REQUIREMENT="designated => identifier \"${BUNDLE_ID}\""
 
 # -------------------------------------------------------

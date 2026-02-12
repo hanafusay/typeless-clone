@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# create-dmg.sh — TypelessClone の配布用 DMG を作成する
+# create-dmg.sh — Koe の配布用 DMG を作成する
 #
 # 使い方:
 #   ./create-dmg.sh            # ビルド + DMG 作成
@@ -11,7 +11,7 @@
 #   - hdiutil（macOS 標準搭載）
 #
 # 出力:
-#   ./dist/TypelessClone-<version>.dmg
+#   ./dist/Koe-<version>.dmg
 # ============================================================
 set -euo pipefail
 
@@ -37,7 +37,7 @@ if [ -z "${VERSION}" ]; then
 fi
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 
-echo "=== TypelessClone DMG Builder ==="
+echo "=== Koe DMG Builder ==="
 echo "  Version: ${VERSION}"
 echo ""
 
@@ -87,13 +87,13 @@ ln -s /Applications "${DMG_STAGE}/Applications"
 
 # Create a README inside the DMG
 cat > "${DMG_STAGE}/はじめにお読みください.txt" << 'READMETXT'
-TypelessClone — インストール手順
+koe! — インストール手順
 
 1. インストール
-   TypelessClone.app を Applications フォルダにドラッグ＆ドロップしてください。
+   Koe.app を Applications フォルダにドラッグ＆ドロップしてください。
 
 2. 初回起動
-   - /Applications/TypelessClone.app をダブルクリック
+   - /Applications/Koe.app をダブルクリック
    - Gatekeeper にブロックされたら「完了」を押す
    - システム設定 > プライバシーとセキュリティ を開く
    - 画面下部の「このまま開く」をクリック

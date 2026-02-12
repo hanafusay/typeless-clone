@@ -2,14 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "TypelessClone",
+    name: "Koe",
     platforms: [
         .macOS(.v14)
     ],
     targets: [
         .executableTarget(
-            name: "TypelessClone",
-            path: "Sources/TypelessClone",
+            name: "Koe",
+            path: "Sources/Koe",
             resources: [
                 .copy("../../Resources/Info.plist")
             ]

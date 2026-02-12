@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// generate-icon.swift — TypelessClone アプリアイコン & メニューバーアイコン生成
+// generate-icon.swift — koe! アプリアイコン & メニューバーアイコン生成
 //
 // Usage:
 //   swift generate-icon.swift app    <output-png>     -- 1024x1024 アプリアイコン
