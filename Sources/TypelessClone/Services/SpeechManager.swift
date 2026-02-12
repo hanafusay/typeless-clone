@@ -3,6 +3,8 @@ import Speech
 
 @MainActor
 final class SpeechManager: ObservableObject {
+    static let shared = SpeechManager()
+
     @Published var isRecording = false
     @Published var recognizedText = ""
     @Published var partialText = ""
@@ -13,7 +15,7 @@ final class SpeechManager: ObservableObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private var speechRecognizer: SFSpeechRecognizer?
 
-    init() {
+    private init() {
         updateRecognizer(language: Config.shared.recognitionLanguage)
     }
 

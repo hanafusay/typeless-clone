@@ -2,10 +2,12 @@ import SwiftUI
 
 @main
 struct TypelessCloneApp: App {
+    private static var didScheduleHotkeySetup = false
+
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    @StateObject private var speechManager = SpeechManager()
-    @StateObject private var hotkeyManager = HotkeyManager()
+    @StateObject private var speechManager = SpeechManager.shared
+    @StateObject private var hotkeyManager = HotkeyManager.shared
     @ObservedObject private var config = Config.shared
 
     @State private var statusText = "待機中"
@@ -89,20 +91,30 @@ struct TypelessCloneApp: App {
     }
 
     private func setupHotkey() {
-        hotkeyManager.onRecordStart = { [self] in
-            handleStartRecording()
-        }
-        hotkeyManager.onRecordStop = { [self] in
-            handleStopRecording()
-        }
-        hotkeyManager.start()
+        Log.d("[TypelessCloneApp] setupHotkey")
+        hotkeyManager.start(
+            onRecordStart: { [self] in
+                Log.d("[TypelessCloneApp] onRecordStart callback")
+                handleStartRecording()
+            },
+            onRecordStop: { [self] in
+                Log.d("[TypelessCloneApp] onRecordStop callback")
+                handleStopRecording()
+            }
+        )
     }
 
     private func handleStartRecording() {
+        Log.d("[TypelessCloneApp] handleStartRecording called (isProcessing=\(isProcessing), isRecording=\(speechManager.isRecording))")
         guard !isProcessing else { return }
+        guard !speechManager.isRecording else {
+            Log.d("[TypelessCloneApp] Ignored start because recording is already active")
+            return
+        }
         do {
             speechManager.updateRecognizer(language: config.recognitionLanguage)
             try speechManager.startRecording()
+            Log.d("[TypelessCloneApp] Recording started via hotkey/manual")
             statusText = "録音中..."
 
             overlay.updateStatus(.recording)
@@ -110,6 +122,7 @@ struct TypelessCloneApp: App {
 
             startPartialTextUpdates()
         } catch {
+            Log.d("[TypelessCloneApp] handleStartRecording error: \(error.localizedDescription)")
             statusText = "エラー: \(error.localizedDescription)"
             overlay.updateStatus(.error, text: error.localizedDescription)
             dismissOverlayAfterDelay()
@@ -129,7 +142,13 @@ struct TypelessCloneApp: App {
     }
 
     private func handleStopRecording() {
-        guard speechManager.isRecording else { return }
+        Log.d("[TypelessCloneApp] handleStopRecording called (isRecording=\(speechManager.isRecording))")
+        guard speechManager.isRecording else {
+            Log.d("[TypelessCloneApp] No active recording. Dismissing overlay for safety.")
+            statusText = "待機中"
+            overlay.dismiss()
+            return
+        }
         speechManager.stopRecording()
         overlay.updateStatus(.recognizing)
 
@@ -183,6 +202,9 @@ struct TypelessCloneApp: App {
     }
 
     init() {
+        guard !Self.didScheduleHotkeySetup else { return }
+        Self.didScheduleHotkeySetup = true
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
             setupHotkey()
         }
