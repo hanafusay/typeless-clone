@@ -1,7 +1,7 @@
 import Foundation
 
 final class GeminiService {
-    private let model = "gemini-2.0-flash-lite"
+    private let model = "gemini-2.5-flash-lite"
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     struct GeminiRequest: Encodable {
