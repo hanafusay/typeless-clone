@@ -7,6 +7,10 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("一般") {
+                Toggle("ログイン時に起動", isOn: $config.launchAtLogin)
+            }
+
             Section("Gemini API") {
                 HStack {
                     if showAPIKey {
@@ -89,7 +93,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 560)
+        .frame(width: 480, height: 600)
         .padding()
     }
 }

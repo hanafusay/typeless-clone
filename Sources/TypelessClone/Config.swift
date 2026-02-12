@@ -1,4 +1,5 @@
 import Foundation
+import ServiceManagement
 
 final class Config: ObservableObject {
     static let shared = Config()
@@ -57,6 +58,25 @@ final class Config: ObservableObject {
         didSet { defaults.set(rewritePrompt, forKey: Keys.rewritePrompt) }
     }
 
+    @Published var launchAtLogin: Bool {
+        didSet {
+            do {
+                if launchAtLogin {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+            } catch {
+                Log.d("[Config] Failed to \(launchAtLogin ? "register" : "unregister") launch at login: \(error)")
+                // Revert to actual state on failure
+                let actual = SMAppService.mainApp.status == .enabled
+                if actual != launchAtLogin {
+                    launchAtLogin = actual
+                }
+            }
+        }
+    }
+
     private init() {
         // Load from .env file if API key not in UserDefaults
         let savedKey = defaults.string(forKey: Keys.geminiAPIKey) ?? ""
@@ -73,6 +93,8 @@ final class Config: ObservableObject {
         } else {
             self.rewriteEnabled = defaults.bool(forKey: Keys.rewriteEnabled)
         }
+
+        self.launchAtLogin = SMAppService.mainApp.status == .enabled
 
         let savedPrompt = defaults.string(forKey: Keys.rewritePrompt)
         if let savedPrompt {
