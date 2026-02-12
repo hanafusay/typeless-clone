@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>TypelessClone</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.typelessclone.app</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>TypelessClone</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>音声入力のためにマイクへのアクセスが必要です。</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>音声をテキストに変換するために音声認識へのアクセスが必要です。</string>
+</dict>
+</plist>
