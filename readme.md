@@ -3,7 +3,7 @@
 macOS メニューバー常駐の音声入力アプリです。
 `fn` を押している間だけ録音し、離したら文字起こししてアクティブアプリに貼り付けます。
 
-![デモ動画](screenshots/demo.gif)
+<video src="screenshots/demo.mp4" autoplay loop muted playsinline></video>
 
 ## Quick Start
 
