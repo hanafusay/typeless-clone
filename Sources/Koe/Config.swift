@@ -11,7 +11,10 @@ final class Config: ObservableObject {
         static let recognitionLanguage = "recognitionLanguage"
         static let rewriteEnabled = "rewriteEnabled"
         static let rewritePrompt = "rewritePrompt"
+        static let rewriteUserContext = "rewriteUserContext"
     }
+
+    static let maxUserContextLength = 400
 
     static let legacyDefaultRewritePrompt = """
     あなたは音声認識テキストのリライターです。
@@ -42,6 +45,18 @@ final class Config: ObservableObject {
     - 出力は「校正後テキストのみ」。説明・注釈・前置きは一切不要。
     """
 
+    static let defaultCorrectionPrompt = """
+    あなたはテキスト修正アシスタントです。
+    ユーザーから「対象テキスト」と「指示」が与えられます。
+    指示に従って対象テキストを修正し、修正後のテキストのみを出力してください。
+
+    ルール:
+    - 指示に忠実に従う
+    - 指示の範囲外の変更は行わない
+    - 出力は修正後のテキストのみ。説明・注釈・前置きは一切不要
+    - 指示が曖昧な場合は、最も自然な解釈で修正する
+    """
+
     @Published var geminiAPIKey: String {
         didSet { defaults.set(geminiAPIKey, forKey: Keys.geminiAPIKey) }
     }
@@ -56,6 +71,10 @@ final class Config: ObservableObject {
 
     @Published var rewritePrompt: String {
         didSet { defaults.set(rewritePrompt, forKey: Keys.rewritePrompt) }
+    }
+
+    @Published var rewriteUserContext: String {
+        didSet { defaults.set(rewriteUserContext, forKey: Keys.rewriteUserContext) }
     }
 
     @Published var launchAtLogin: Bool {
@@ -95,6 +114,8 @@ final class Config: ObservableObject {
         }
 
         self.launchAtLogin = SMAppService.mainApp.status == .enabled
+
+        self.rewriteUserContext = defaults.string(forKey: Keys.rewriteUserContext) ?? ""
 
         let savedPrompt = defaults.string(forKey: Keys.rewritePrompt)
         if let savedPrompt {

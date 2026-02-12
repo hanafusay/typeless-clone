@@ -69,6 +69,14 @@ final class SpeechManager: ObservableObject {
                         self.recognizedText = text
                         self.partialText = ""
                         Log.d("[SpeechManager] Final: \(text)")
+                        // Debug: log per-segment confidence
+                        for seg in result.bestTranscription.segments {
+                            Log.d("[SpeechManager]   segment: \"\(seg.substring)\" confidence=\(seg.confidence) duration=\(seg.duration)")
+                        }
+                        // Debug: log alternative transcriptions
+                        for (i, alt) in result.transcriptions.dropFirst().prefix(3).enumerated() {
+                            Log.d("[SpeechManager]   alt[\(i+1)]: \(alt.formattedString)")
+                        }
                     } else {
                         self.partialText = text
                     }
