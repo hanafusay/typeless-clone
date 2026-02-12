@@ -91,7 +91,7 @@ API キー、認識言語、校正プロンプトを設定できます。
 
 ### デモ動画
 
-![デモ動画](screenshots/demo.mp4)
+![デモ動画](screenshots/demo.gif)
 
 ## 他の Mac で起動する（ローカル利用）
 
