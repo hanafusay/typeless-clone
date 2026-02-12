@@ -83,12 +83,15 @@ API キー、認識言語、校正プロンプトを設定できます。
   - システム設定 > キーボード > `🌐キーを押して` を `何もしない` に変更
 
 - 設定をやり直したい
+  - **ターミナル.app**（Launchpad > その他 > ターミナル）を開き、以下を 1 行ずつ貼り付けて実行してください
 
 ```bash
 tccutil reset Accessibility com.typelessclone.app
 tccutil reset ListenEvent com.typelessclone.app
 tccutil reset PostEvent com.typelessclone.app
 ```
+
+> 実行後、アプリを再起動すると権限ダイアログが再表示されます。
 
 ---
 
