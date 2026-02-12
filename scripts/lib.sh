@@ -43,6 +43,17 @@ create_app_bundle() {
     # Copy Info.plist (must be at Contents/Info.plist)
     cp "Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
     echo "  Info.plist copied"
+
+    # Copy app icon
+    if [ -f "Resources/AppIcon.icns" ]; then
+        cp "Resources/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
+        echo "  AppIcon.icns copied"
+    fi
+
+    # Copy menu bar icons
+    for f in Resources/MenuBarIcon*.png; do
+        [ -f "$f" ] && cp "$f" "${RESOURCES_DIR}/" && echo "  $(basename "$f") copied"
+    done
 }
 
 # -------------------------------------------------------

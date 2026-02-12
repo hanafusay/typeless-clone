@@ -21,12 +21,31 @@ struct TypelessCloneApp: App {
         MenuBarExtra {
             menuContent
         } label: {
-            Label(
-                speechManager.isRecording ? "録音中" : "TypelessClone",
-                systemImage: speechManager.isRecording ? "mic.fill" : "mic"
-            )
+            if speechManager.isRecording {
+                Label("録音中", systemImage: "mic.fill")
+            } else {
+                Image(nsImage: Self.menuBarIcon)
+            }
         }
     }
+
+    /// Template image for the menu bar (loaded from bundle Resources)
+    private static let menuBarIcon: NSImage = {
+        let bundleResourcePath = Bundle.main.resourcePath ?? ""
+        let candidates = [
+            bundleResourcePath + "/MenuBarIcon@2x.png",
+            bundleResourcePath + "/MenuBarIcon.png",
+        ]
+        for path in candidates {
+            if let img = NSImage(contentsOfFile: path) {
+                img.isTemplate = true
+                img.size = NSSize(width: 18, height: 18)
+                return img
+            }
+        }
+        // Fallback to SF Symbol
+        return NSImage(systemSymbolName: "mic", accessibilityDescription: "TypelessClone")!
+    }()
 
     @ViewBuilder
     private var menuContent: some View {
