@@ -1,6 +1,45 @@
 import Cocoa
 
 final class PasteService {
+    /// Retrieve the currently selected text from the focused application via Accessibility API.
+    static func getSelectedText() -> String? {
+        guard AXIsProcessTrusted() else {
+            Log.d("[PasteService] Accessibility not trusted. Cannot get selected text.")
+            return nil
+        }
+
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedElement: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            systemWide,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElement
+        ) == .success,
+        let focusedElement,
+        CFGetTypeID(focusedElement) == AXUIElementGetTypeID() else {
+            Log.d("[PasteService] Could not get focused element")
+            return nil
+        }
+
+        let focused = unsafeBitCast(focusedElement, to: AXUIElement.self)
+
+        var selectedText: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            focused,
+            kAXSelectedTextAttribute as CFString,
+            &selectedText
+        ) == .success,
+        let selectedText,
+        let text = selectedText as? String,
+        !text.isEmpty else {
+            Log.d("[PasteService] No selected text found")
+            return nil
+        }
+
+        Log.d("[PasteService] Selected text found (\(text.count) chars)")
+        return text
+    }
+
     static func paste(text: String) {
         // Copy to clipboard
         let pasteboard = NSPasteboard.general

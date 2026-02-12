@@ -127,8 +127,10 @@ final class OverlayPanel: NSPanel {
 
 enum OverlayStatus {
     case recording
+    case recordingCorrection
     case recognizing
     case rewriting
+    case correcting
     case done
     case error
 }
@@ -177,11 +179,17 @@ struct OverlayView: View {
         case .recording:
             Image(systemName: "mic.fill")
                 .foregroundColor(.red)
+        case .recordingCorrection:
+            Image(systemName: "mic.fill")
+                .foregroundColor(.purple)
         case .recognizing:
             ProgressView()
                 .scaleEffect(0.7)
         case .rewriting:
             Image(systemName: "sparkles")
+                .foregroundColor(.secondary)
+        case .correcting:
+            Image(systemName: "pencil.and.outline")
                 .foregroundColor(.secondary)
         case .done:
             Image(systemName: "checkmark.circle.fill")
@@ -195,8 +203,10 @@ struct OverlayView: View {
     private var statusLabel: String {
         switch state.status {
         case .recording: return "録音中... fn を離すと確定"
+        case .recordingCorrection: return "修正モード: fn を離すと確定"
         case .recognizing: return "認識中..."
         case .rewriting: return "リライト中..."
+        case .correcting: return "修正中..."
         case .done: return "完了"
         case .error: return "エラー"
         }
@@ -205,8 +215,10 @@ struct OverlayView: View {
     private var statusColor: Color {
         switch state.status {
         case .recording: return .red
+        case .recordingCorrection: return .purple
         case .recognizing: return .blue
         case .rewriting: return .purple
+        case .correcting: return .purple
         case .done: return .green
         case .error: return .orange
         }

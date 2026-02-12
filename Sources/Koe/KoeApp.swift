@@ -13,6 +13,7 @@ struct KoeApp: App {
     @State private var statusText = "待機中"
     @State private var isProcessing = false
     @State private var settingsWindow: NSWindow?
+    @State private var selectedTextForCorrection: String?
 
     private let geminiService = GeminiService()
     private let overlay = OverlayPanel()
@@ -130,13 +131,20 @@ struct KoeApp: App {
             Log.d("[KoeApp] Ignored start because recording is already active")
             return
         }
+
+        // Check for selected text BEFORE recording starts (before overlay could affect focus)
+        let selected = PasteService.getSelectedText()
+        selectedTextForCorrection = selected
+        Log.d("[KoeApp] Selected text for correction: \(selected != nil ? "\(selected!.count) chars" : "none")")
+
         do {
             speechManager.updateRecognizer(language: config.recognitionLanguage)
             try speechManager.startRecording()
             Log.d("[KoeApp] Recording started via hotkey/manual")
-            statusText = "録音中..."
 
-            overlay.updateStatus(.recording)
+            let isCorrection = selected != nil
+            statusText = isCorrection ? "修正モード: 録音中..." : "録音中..."
+            overlay.updateStatus(isCorrection ? .recordingCorrection : .recording)
             overlay.showNearCursor()
 
             startPartialTextUpdates()
@@ -144,16 +152,18 @@ struct KoeApp: App {
             Log.d("[KoeApp] handleStartRecording error: \(error.localizedDescription)")
             statusText = "エラー: \(error.localizedDescription)"
             overlay.updateStatus(.error, text: error.localizedDescription)
+            selectedTextForCorrection = nil
             dismissOverlayAfterDelay()
         }
     }
 
     private func startPartialTextUpdates() {
+        let isCorrection = selectedTextForCorrection != nil
         Task { @MainActor in
             while speechManager.isRecording {
                 let partial = speechManager.partialText
                 if !partial.isEmpty {
-                    overlay.updateStatus(.recording, text: partial)
+                    overlay.updateStatus(isCorrection ? .recordingCorrection : .recording, text: partial)
                 }
                 try? await Task.sleep(nanoseconds: 200_000_000)
             }
@@ -171,6 +181,10 @@ struct KoeApp: App {
         speechManager.stopRecording()
         overlay.updateStatus(.recognizing)
 
+        // Capture and clear the correction state
+        let correctionText = selectedTextForCorrection
+        selectedTextForCorrection = nil
+
         Task { @MainActor in
             let recognizedText = await speechManager.waitForResult(timeout: 2.0)
 
@@ -183,7 +197,42 @@ struct KoeApp: App {
 
             statusText = "認識完了"
 
-            if config.rewriteEnabled && !config.geminiAPIKey.isEmpty {
+            if let selectedText = correctionText {
+                // --- Correction mode: voice = instruction, selected text = target ---
+                guard !config.geminiAPIKey.isEmpty else {
+                    statusText = "API キーが未設定"
+                    overlay.updateStatus(.error, text: "修正機能にはGemini APIキーが必要です。設定から追加してください。")
+                    dismissOverlayAfterDelay(seconds: 2.0)
+                    return
+                }
+
+                isProcessing = true
+                statusText = "修正中..."
+                overlay.updateStatus(.correcting, text: recognizedText)
+
+                do {
+                    var systemPrompt = Config.defaultCorrectionPrompt
+                    let userContext = config.rewriteUserContext.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !userContext.isEmpty {
+                        systemPrompt += "\n\n【ユーザーコンテキスト】\n" + userContext
+                    }
+                    let corrected = try await geminiService.correct(
+                        selectedText: selectedText,
+                        instruction: recognizedText,
+                        systemPrompt: systemPrompt,
+                        apiKey: config.geminiAPIKey
+                    )
+                    PasteService.paste(text: corrected)
+                    statusText = "完了"
+                    overlay.updateStatus(.done, text: corrected)
+                } catch {
+                    statusText = "修正エラー"
+                    overlay.updateStatus(.error, text: error.localizedDescription)
+                    // Do NOT paste on error — preserve the original selected text
+                }
+                isProcessing = false
+            } else if config.rewriteEnabled && !config.geminiAPIKey.isEmpty {
+                // --- Normal rewrite mode ---
                 isProcessing = true
                 statusText = "リライト中..."
                 overlay.updateStatus(.rewriting, text: recognizedText)
@@ -209,6 +258,7 @@ struct KoeApp: App {
                 }
                 isProcessing = false
             } else {
+                // --- Plain dictation mode ---
                 PasteService.paste(text: recognizedText)
                 statusText = "完了"
                 overlay.updateStatus(.done, text: recognizedText)

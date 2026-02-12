@@ -95,6 +95,14 @@ struct SettingsView: View {
                         .font(.caption)
                 }
 
+                HStack {
+                    Text("テキスト修正:")
+                    Spacer()
+                    Text("テキストを選択 → fn 押しながら指示 → 修正")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+
                 Text("⚠️ fn キーが絵文字ピッカーや音声入力を起動する場合は、\nシステム設定 → キーボード → 「🌐キーを押して」を「何もしない」に変更してください")
                     .font(.caption)
                     .foregroundColor(.secondary)
