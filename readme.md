@@ -5,7 +5,19 @@ macOS メニューバー常駐の音声入力アプリです。
 
 ![デモ](screenshots/demo.gif)
 
-## Quick Start
+## ダウンロード
+
+[GitHub Releases](../../releases/latest) から最新の DMG をダウンロードできます。
+
+1. `TypelessClone-*.dmg` をダウンロード
+2. DMG を開いて `TypelessClone.app` を `Applications` にドラッグ
+3. **初回起動:** Finder で右クリック →「開く」（署名なしアプリのため）
+4. 権限を許可（マイク・音声認識・アクセシビリティ・入力監視）
+5. メニューバーのアイコン →「設定」から Gemini API キーを入力
+
+> 開発環境不要。macOS 14 以上で動作します。
+
+## Quick Start（ソースからビルド）
 
 ```bash
 cp .env.example .env
@@ -91,14 +103,47 @@ API キー、認識言語、校正プロンプトを設定できます。
 
 ![設定画面（権限と操作）](screenshots/settings-permissions.png)
 
-## 他の Mac で起動する（ローカル利用）
+## DMG で配布する
 
-このアプリは Developer ID 署名 / notarize なしのローカル運用前提です。  
-他の Mac でも以下を実施すれば起動できます。
+開発環境がない人向けに、ビルド済みの DMG を作成して配布できます。
 
-1. アプリを `/Applications` に配置
-- 推奨: 対象 Mac 上でリポジトリを clone して `./build.sh`
-- もしくは `TypelessClone.app` をコピーして `/Applications` へ
+### DMG の作成（ビルドできる Mac で実行）
+
+```bash
+./create-dmg.sh
+```
+
+`dist/TypelessClone-1.0.dmg` が作成されます。
+この DMG をメール・チャット・ファイル共有などで配布してください。
+
+### DMG からのインストール（受け取った人が実行）
+
+1. DMG をダブルクリックしてマウント
+2. `TypelessClone.app` を `Applications` フォルダにドラッグ＆ドロップ
+3. **初回起動:** Finder で `/Applications/TypelessClone.app` を **右クリック →「開く」**
+   - 署名なしアプリのため、ダブルクリックでは開けません。右クリックが必要です
+   - 2回目以降はダブルクリックで起動できます
+4. 権限を許可（マイク・音声認識・アクセシビリティ・入力監視）
+5. メニューバーのアイコン →「設定」から **Gemini API キーを入力**
+
+> **注意:** このDMGはアドホック署名です。Gatekeeper の警告が出るため、
+> 受け取った人は初回に右クリック →「開く」が必要です。
+> Apple Developer Program（年額 $99）に登録して Developer ID 署名 + notarize すれば、
+> ダブルクリックだけで起動できるようになります。
+
+## 他の Mac で起動する（ソースから）
+
+リポジトリを clone してビルドする方法です。
+
+1. アプリをビルド＆インストール
+
+```bash
+git clone <repository-url>
+cd typeless-clone
+cp .env.example .env
+# .env に GEMINI_API_KEY=... を設定
+./build.sh
+```
 
 2. 初回起動
 
@@ -135,4 +180,77 @@ pkill -x TypelessClone; open /Applications/TypelessClone.app
 tccutil reset Accessibility com.typelessclone.app
 tccutil reset ListenEvent com.typelessclone.app
 tccutil reset PostEvent com.typelessclone.app
+```
+
+## リリースの作り方（メンテナー向け）
+
+### GitHub Actions の自動リリース
+
+タグを push すると GitHub Actions が自動で DMG を作成し、GitHub Releases に公開します。
+
+#### 初回セットアップ
+
+`.github/workflows/release.yml` を作成してください:
+
+```yaml
+name: Release DMG
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build release binary
+        run: swift build -c release
+
+      - name: Create app bundle and DMG
+        run: ./create-dmg.sh --skip-build
+
+      - name: Get version from tag
+        id: version
+        run: echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TypelessClone ${{ steps.version.outputs.tag }}
+          body: |
+            ## インストール方法
+
+            1. `TypelessClone-*.dmg` をダウンロード
+            2. DMG を開いて `TypelessClone.app` を `Applications` にドラッグ
+            3. **初回起動:** Finder で右クリック →「開く」
+            4. 権限を許可（マイク・音声認識・アクセシビリティ・入力監視）
+            5. メニューバーのアイコン →「設定」から Gemini API キーを入力
+
+            > macOS 14 (Sonoma) 以上が必要です。
+            > 署名なしアプリのため初回は右クリック →「開く」が必要です。
+          files: dist/*.dmg
+          draft: false
+          prerelease: false
+```
+
+#### リリースの実行
+
+```bash
+# Info.plist のバージョンを更新してからコミット
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### 手動で DMG を作る場合
+
+```bash
+./create-dmg.sh
+# dist/TypelessClone-1.0.dmg が生成される
 ```
