@@ -5,83 +5,52 @@ macOS メニューバー常駐の音声入力アプリです。
 
 ![デモ](screenshots/demo.gif)
 
-## ダウンロード
+## インストール（DMG から）
 
-[GitHub Releases](../../releases/latest) から最新の DMG をダウンロードできます。
+開発環境は不要です。macOS 14 以上で動作します。
 
-1. `TypelessClone-*.dmg` をダウンロード
-2. DMG を開いて `TypelessClone.app` を `Applications` にドラッグ
-3. **初回起動:** ダブルクリックするとブロックされるので、**システム設定 > プライバシーとセキュリティ** を開き「このまま開く」をクリック
-4. 権限を許可（マイク・音声認識・アクセシビリティ・入力監視）
-5. メニューバーのアイコン →「設定」から Gemini API キーを入力
+### 1. ダウンロード
 
-> 開発環境不要。macOS 14 以上で動作します。
+[GitHub Releases](../../releases/latest) から最新の `TypelessClone-*.dmg` をダウンロードしてください。
 
-## Quick Start（ソースからビルド）
+### 2. アプリを Applications にコピー
 
-```bash
-cp .env.example .env
-# .env に GEMINI_API_KEY=... を設定
-./build.sh
-open /Applications/TypelessClone.app
-```
+DMG を開いて `TypelessClone.app` を `Applications` フォルダにドラッグ＆ドロップします。
 
-初回起動時に以下を許可してください。
+### 3. 初回起動（Gatekeeper の許可）
+
+このアプリはアドホック署名のため、初回起動時に macOS の Gatekeeper にブロックされます。
+
+1. `/Applications/TypelessClone.app` をダブルクリック → ブロックされるので **「完了」** を押す
+2. **システム設定 > プライバシーとセキュリティ** を開く
+3. 画面下部に表示される **「このまま開く」** をクリック
+
+![Gatekeeper の「このまま開く」](screenshots/gatekeeper-open-anyway.png)
+
+4. 確認ダイアログで **「開く」** をクリック（以降はダブルクリックで起動可能）
+
+### 4. 権限を許可
+
+初回起動時にダイアログが表示されるので、以下をすべて許可してください。
+
 - マイク
 - 音声認識
-- アクセシビリティ
-- 入力監視
+- アクセシビリティ（システム設定 > プライバシーとセキュリティ > アクセシビリティ）
+- 入力監視（システム設定 > プライバシーとセキュリティ > 入力監視）
 
-使い方:
+### 5. API キーを設定
+
+メニューバーのアイコン →「設定」から **Gemini API キー** を入力してください。
+[Google AI Studio](https://aistudio.google.com/apikey) で無料で取得できます。
+
+> API キーを設定しなくても Apple の音声認識で文字起こしできますが、
+> Gemini による校正（リライト）を使う場合はキーが必要です。
+
+### 使い方
+
 - `fn` を押しながら話す
 - `fn` を離すと確定して貼り付け
-
-## 前提環境
-
-- macOS 14 以上
-- Xcode Command Line Tools
-- Swift 5.9+（`swift build` が動くこと）
-
-## 初回セットアップ
-
-1. `.env` を作成して Gemini API キーを設定
-
-```bash
-cp .env.example .env
-```
-
-`.env`:
-
-```env
-GEMINI_API_KEY=your_api_key_here
-```
-
-2. ビルドとインストール
-
-```bash
-./build.sh
-```
-
-`/Applications/TypelessClone.app` にインストールされます。
-
-## 詳細な使い方
-
-1. アプリ起動
-
-```bash
-open /Applications/TypelessClone.app
-```
-
-2. 必要な権限を許可
-- マイク
-- 音声認識
-- アクセシビリティ
-- 入力監視
-
-3. 文字入力
-- `fn` を押しながら話す
-- `fn` を離すと確定して貼り付け
-- メニューから手動録音も可能
+- メニューバーのアイコンから手動録音も可能
 
 ## スクリーンショット
 
@@ -103,67 +72,6 @@ API キー、認識言語、校正プロンプトを設定できます。
 
 ![設定画面（権限と操作）](screenshots/settings-permissions.png)
 
-## DMG で配布する
-
-開発環境がない人向けに、ビルド済みの DMG を作成して配布できます。
-
-### DMG の作成（ビルドできる Mac で実行）
-
-```bash
-./create-dmg.sh
-```
-
-`dist/TypelessClone-1.0.dmg` が作成されます。
-この DMG をメール・チャット・ファイル共有などで配布してください。
-
-### DMG からのインストール（受け取った人が実行）
-
-1. DMG をダブルクリックしてマウント
-2. `TypelessClone.app` を `Applications` フォルダにドラッグ＆ドロップ
-3. **初回起動:** `/Applications/TypelessClone.app` をダブルクリック → Gatekeeper にブロックされるので「完了」を押す
-4. **システム設定 > プライバシーとセキュリティ** を開く → 画面下部の「"TypelessClone.app"は開けませんでした」の横にある **「このまま開く」** をクリック
-5. 確認ダイアログで「開く」をクリック（以降はダブルクリックで起動可能）
-6. 権限を許可（マイク・音声認識・アクセシビリティ・入力監視）
-7. メニューバーのアイコン →「設定」から **Gemini API キーを入力**
-
-> **注意:** このDMGはアドホック署名（Developer ID なし）です。
-> macOS の Gatekeeper が初回起動をブロックしますが、上記手順で開けます。
-> Apple Developer Program（年額 $99）で Developer ID 署名 + notarize すれば、
-> ダブルクリックだけで起動できるようになります。
-
-## 他の Mac で起動する（ソースから）
-
-リポジトリを clone してビルドする方法です。
-
-1. アプリをビルド＆インストール
-
-```bash
-git clone https://github.com/hanafusay/typeless-clone.git
-cd typeless-clone
-cp .env.example .env
-# .env に GEMINI_API_KEY=... を設定
-./build.sh
-```
-
-2. 初回起動
-
-```bash
-open /Applications/TypelessClone.app
-```
-
-Gatekeeper にブロックされた場合は、**システム設定 > プライバシーとセキュリティ** →「このまま開く」をクリックしてください。
-
-3. 権限付与（Mac ごとに必要）
-- `プライバシーとセキュリティ > アクセシビリティ`
-- `プライバシーとセキュリティ > 入力監視`
-- 両方で `TypelessClone.app` を ON
-
-4. 権限付与後に再起動
-
-```bash
-pkill -x TypelessClone; open /Applications/TypelessClone.app
-```
-
 ## トラブルシュート
 
 - `アクセシビリティを許可してください` が消えない
@@ -182,18 +90,59 @@ tccutil reset ListenEvent com.typelessclone.app
 tccutil reset PostEvent com.typelessclone.app
 ```
 
-## リリースの作り方（メンテナー向け）
+---
 
-### GitHub Actions の自動リリース
+## 開発者向け
+
+### 前提環境
+
+- macOS 14 以上
+- Xcode Command Line Tools
+- Swift 5.9+（`swift build` が動くこと）
+
+### ソースからビルド
+
+```bash
+git clone https://github.com/hanafusay/typeless-clone.git
+cd typeless-clone
+cp .env.example .env
+# .env に GEMINI_API_KEY=... を設定
+./build.sh
+open /Applications/TypelessClone.app
+```
+
+`build.sh` は release ビルド → .app バンドル作成 → コード署名 → `/Applications` にインストールまで一括で行います。
+
+Gatekeeper にブロックされた場合は、**システム設定 > プライバシーとセキュリティ** →「このまま開く」をクリックしてください。
+
+初回起動後、以下の権限を許可してください。
+- アクセシビリティ
+- 入力監視
+- マイク
+- 音声認識
+
+権限付与後にアプリを再起動:
+
+```bash
+pkill -x TypelessClone; open /Applications/TypelessClone.app
+```
+
+### DMG の作成
+
+開発環境がない人向けに、ビルド済みの DMG を作成して配布できます。
+
+```bash
+./create-dmg.sh
+# dist/TypelessClone-1.0.dmg が生成される
+```
+
+この DMG をメール・チャット・ファイル共有などで配布してください。
+
+### リリースの作り方
 
 タグを push すると GitHub Actions が自動で DMG を作成し、GitHub Releases に公開します。
 
-#### 初回セットアップ
-
 ワークフロー定義は [`.github/workflows/release.yml`](.github/workflows/release.yml) にあります。
-特別な設定は不要です。
-
-#### リリースの実行
 
 ```bash
 # Info.plist のバージョンを更新してからコミット
@@ -201,9 +150,4 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-### 手動で DMG を作る場合
-
-```bash
-./create-dmg.sh
-# dist/TypelessClone-1.0.dmg が生成される
-```
+手動で DMG を作る場合は `./create-dmg.sh` を実行してください。
