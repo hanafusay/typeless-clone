@@ -33,7 +33,7 @@ final class OverlayPanel: NSPanel {
 
     /// Show the overlay near the text caret or mouse cursor
     func showNearCursor() {
-        let position = getCaretPosition() ?? NSEvent.mouseLocation
+        let position = NSEvent.mouseLocation
         let screen = NSScreen.screens.first(where: { NSMouseInRect(position, $0.frame, false) }) ?? NSScreen.main!
         let visibleFrame = screen.visibleFrame
 
@@ -85,29 +85,51 @@ final class OverlayPanel: NSPanel {
     /// Try to get the text caret position via Accessibility API
     private func getCaretPosition() -> NSPoint? {
         let systemWide = AXUIElementCreateSystemWide()
-        var focusedElement: AnyObject?
-        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
+        var focusedElement: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success,
+              let focusedElement,
+              CFGetTypeID(focusedElement) == AXUIElementGetTypeID() else {
             return nil
         }
+        let focused = unsafeBitCast(focusedElement, to: AXUIElement.self)
 
-        var selectedRange: AnyObject?
-        guard AXUIElementCopyAttributeValue(focusedElement as! AXUIElement, kAXSelectedTextRangeAttribute as CFString, &selectedRange) == .success else {
-            return nil
+        var selectedRange: CFTypeRef?
+        var bounds: CFTypeRef?
+        if AXUIElementCopyAttributeValue(focused, kAXSelectedTextRangeAttribute as CFString, &selectedRange) == .success,
+           let selectedRange,
+           AXUIElementCopyParameterizedAttributeValue(focused, kAXBoundsForRangeParameterizedAttribute as CFString, selectedRange, &bounds) == .success,
+           let bounds,
+           CFGetTypeID(bounds) == AXValueGetTypeID() {
+            let boundsValue = unsafeBitCast(bounds, to: AXValue.self)
+            var rect = CGRect.zero
+            if AXValueGetValue(boundsValue, .cgRect, &rect) {
+                return convertAXToAppKit(point: NSPoint(x: rect.origin.x, y: rect.origin.y + rect.height))
+            }
         }
 
-        var bounds: AnyObject?
-        guard AXUIElementCopyParameterizedAttributeValue(focusedElement as! AXUIElement, kAXBoundsForRangeParameterizedAttribute as CFString, selectedRange!, &bounds) == .success else {
-            return nil
+        // Fallback: some apps do not expose selected range bounds.
+        var position: CFTypeRef?
+        if AXUIElementCopyAttributeValue(focused, kAXPositionAttribute as CFString, &position) == .success,
+           let position,
+           CFGetTypeID(position) == AXValueGetTypeID() {
+            let posValue = unsafeBitCast(position, to: AXValue.self)
+            var point = CGPoint.zero
+            if AXValueGetValue(posValue, .cgPoint, &point) {
+                return convertAXToAppKit(point: NSPoint(x: point.x, y: point.y))
+            }
         }
 
-        var rect = CGRect.zero
-        guard AXValueGetValue(bounds as! AXValue, .cgRect, &rect) else {
-            return nil
-        }
+        return nil
+    }
 
-        // AX coordinates are top-left origin, convert to NSScreen bottom-left origin
-        let screenHeight = NSScreen.main?.frame.height ?? 0
-        return NSPoint(x: rect.origin.x, y: screenHeight - rect.origin.y - rect.height)
+    private func convertAXToAppKit(point: NSPoint) -> NSPoint {
+        let allScreens = NSScreen.screens
+        let screen = allScreens.first(where: { point.x >= $0.frame.minX && point.x <= $0.frame.maxX }) ?? NSScreen.main
+        guard let screen else { return point }
+
+        // AX is top-left origin in global screen coordinates.
+        let yFromBottom = screen.frame.maxY - point.y
+        return NSPoint(x: point.x, y: yFromBottom)
     }
 }
 

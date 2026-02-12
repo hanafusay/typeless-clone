@@ -11,6 +11,7 @@ MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 ENTITLEMENTS="Resources/TypelessClone.entitlements"
 RESET_TCC="${RESET_TCC:-0}"
+DESIGNATED_REQUIREMENT='designated => identifier "com.typelessclone.app"'
 
 # -------------------------------------------------------
 # 1. Stop running instance & clean up old installation
@@ -75,6 +76,7 @@ echo "=== Code signing ==="
 # Sign the executable first (inside the bundle)
 codesign --force --sign - \
     --identifier "${BUNDLE_ID}" \
+    -r="${DESIGNATED_REQUIREMENT}" \
     --entitlements "${ENTITLEMENTS}" \
     "${MACOS_DIR}/${APP_NAME}"
 echo "  Signed executable"
@@ -82,6 +84,7 @@ echo "  Signed executable"
 # Sign the whole bundle (seals Info.plist & Resources)
 codesign --force --sign - \
     --identifier "${BUNDLE_ID}" \
+    -r="${DESIGNATED_REQUIREMENT}" \
     --entitlements "${ENTITLEMENTS}" \
     "${APP_BUNDLE}"
 echo "  Signed app bundle"
