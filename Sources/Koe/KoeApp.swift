@@ -13,7 +13,9 @@ struct KoeApp: App {
     @State private var statusText = "待機中"
     @State private var isProcessing = false
     @State private var settingsWindow: NSWindow?
-    @State private var selectedTextForCorrection: String?
+
+    /// Stored outside @State to avoid SwiftUI async update issues in hotkey callbacks.
+    private static var selectedTextForCorrection: String?
 
     private let geminiService = GeminiService()
     private let overlay = OverlayPanel()
@@ -134,7 +136,7 @@ struct KoeApp: App {
 
         // Check for selected text BEFORE recording starts (before overlay could affect focus)
         let selected = PasteService.getSelectedText()
-        selectedTextForCorrection = selected
+        Self.selectedTextForCorrection = selected
         Log.d("[KoeApp] Selected text for correction: \(selected != nil ? "\(selected!.count) chars" : "none")")
 
         do {
@@ -152,13 +154,13 @@ struct KoeApp: App {
             Log.d("[KoeApp] handleStartRecording error: \(error.localizedDescription)")
             statusText = "エラー: \(error.localizedDescription)"
             overlay.updateStatus(.error, text: error.localizedDescription)
-            selectedTextForCorrection = nil
+            Self.selectedTextForCorrection = nil
             dismissOverlayAfterDelay()
         }
     }
 
     private func startPartialTextUpdates() {
-        let isCorrection = selectedTextForCorrection != nil
+        let isCorrection = Self.selectedTextForCorrection != nil
         Task { @MainActor in
             while speechManager.isRecording {
                 let partial = speechManager.partialText
@@ -182,8 +184,9 @@ struct KoeApp: App {
         overlay.updateStatus(.recognizing)
 
         // Capture and clear the correction state
-        let correctionText = selectedTextForCorrection
-        selectedTextForCorrection = nil
+        let correctionText = Self.selectedTextForCorrection
+        Self.selectedTextForCorrection = nil
+        Log.d("[KoeApp] handleStopRecording correctionText=\(correctionText != nil ? "\(correctionText!.count) chars" : "nil")")
 
         Task { @MainActor in
             let recognizedText = await speechManager.waitForResult(timeout: 2.0)
@@ -199,6 +202,7 @@ struct KoeApp: App {
 
             if let selectedText = correctionText {
                 // --- Correction mode: voice = instruction, selected text = target ---
+                Log.d("[KoeApp] Entering CORRECTION mode (selected=\(selectedText.count) chars, instruction=\(recognizedText))")
                 guard !config.geminiAPIKey.isEmpty else {
                     statusText = "API キーが未設定"
                     overlay.updateStatus(.error, text: "修正機能にはGemini APIキーが必要です。設定から追加してください。")
@@ -233,6 +237,7 @@ struct KoeApp: App {
                 isProcessing = false
             } else if config.rewriteEnabled && !config.geminiAPIKey.isEmpty {
                 // --- Normal rewrite mode ---
+                Log.d("[KoeApp] Entering REWRITE mode")
                 isProcessing = true
                 statusText = "リライト中..."
                 overlay.updateStatus(.rewriting, text: recognizedText)
@@ -259,6 +264,7 @@ struct KoeApp: App {
                 isProcessing = false
             } else {
                 // --- Plain dictation mode ---
+                Log.d("[KoeApp] Entering PLAIN DICTATION mode")
                 PasteService.paste(text: recognizedText)
                 statusText = "完了"
                 overlay.updateStatus(.done, text: recognizedText)
