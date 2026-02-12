@@ -15,7 +15,9 @@ final class HotkeyManager: ObservableObject {
     private var lastFnPressed = false
     private var fnReleaseWatchdog: Timer?
     private var pendingStopWorkItem: DispatchWorkItem?
+    private var pendingStartWorkItem: DispatchWorkItem?
     private let releaseDebounceSeconds: TimeInterval = 0.18
+    private let pressThresholdSeconds: TimeInterval = 0.3
     private var onRecordStartHandler: () -> Void = {}
     private var onRecordStopHandler: () -> Void = {}
 
@@ -110,13 +112,35 @@ final class HotkeyManager: ObservableObject {
         if fnPressed && !isKeyHeld {
             pendingStopWorkItem?.cancel()
             pendingStopWorkItem = nil
-            Log.d("[HotkeyManager] Fn DOWN → start")
-            isKeyHeld = true
-            Log.d("[HotkeyManager] Dispatching onRecordStart")
-            onRecordStartHandler()
-            startFnReleaseWatchdog()
-        } else if !fnPressed && isKeyHeld {
-            requestDebouncedStop(source: source)
+
+            guard pendingStartWorkItem == nil else { return }
+
+            Log.d("[HotkeyManager] Fn DOWN → waiting \(pressThresholdSeconds)s threshold")
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.pendingStartWorkItem = nil
+
+                guard self.currentFnPressed() else {
+                    Log.d("[HotkeyManager] Fn released before threshold → ignored")
+                    return
+                }
+
+                Log.d("[HotkeyManager] Threshold met → start")
+                self.isKeyHeld = true
+                self.onRecordStartHandler()
+                self.startFnReleaseWatchdog()
+            }
+            pendingStartWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + pressThresholdSeconds, execute: workItem)
+        } else if !fnPressed {
+            if let pending = pendingStartWorkItem {
+                pending.cancel()
+                pendingStartWorkItem = nil
+                Log.d("[HotkeyManager] Fn released before threshold → cancelled")
+            }
+            if isKeyHeld {
+                requestDebouncedStop(source: source)
+            }
         }
     }
 
@@ -176,6 +200,8 @@ final class HotkeyManager: ObservableObject {
     }
 
     func stop() {
+        pendingStartWorkItem?.cancel()
+        pendingStartWorkItem = nil
         pendingStopWorkItem?.cancel()
         pendingStopWorkItem = nil
         stopFnReleaseWatchdog()
