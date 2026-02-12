@@ -1,7 +1,9 @@
 # TypelessClone
 
-macOS メニューバー常駐の音声入力アプリです。  
+macOS メニューバー常駐の音声入力アプリです。
 `fn` を押している間だけ録音し、離したら文字起こししてアクティブアプリに貼り付けます。
+
+![デモ動画](screenshots/demo.gif)
 
 ## Quick Start
 
@@ -88,10 +90,6 @@ API キー、認識言語、校正プロンプトを設定できます。
 録音キーの案内、権限ガイド、システム設定への導線です。
 
 ![設定画面（権限と操作）](screenshots/settings-permissions.png)
-
-### デモ動画
-
-![デモ動画](screenshots/demo.gif)
 
 ## 他の Mac で起動する（ローカル利用）
 
