@@ -10,6 +10,7 @@ final class HotkeyManager: ObservableObject {
     private var runLoopSource: CFRunLoopSource?
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var lastFnPressed = false
 
     var onRecordStart: (() -> Void)?
     var onRecordStop: (() -> Void)?
@@ -17,9 +18,10 @@ final class HotkeyManager: ObservableObject {
     func start() {
         isAccessibilityGranted = requestAccessibility()
         Log.d("[HotkeyManager] Accessibility trusted: \(isAccessibilityGranted)")
+        Log.d("[HotkeyManager] Input Monitoring must be enabled for global key capture")
 
         let eventMask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
-        let selfPtr = Unmanaged.passRetained(self)
+        let selfPtr = Unmanaged.passUnretained(self)
 
         eventTap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -39,19 +41,22 @@ final class HotkeyManager: ObservableObject {
 
                 if type == .flagsChanged {
                     let rawFlags = event.flags.rawValue
-                    let hasCmd = event.flags.contains(.maskCommand)
-                    let deviceFlags = rawFlags & 0xFF
-                    let isRightCmd = hasCmd && (deviceFlags & 0x10) != 0
+                    let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+                    let fnPressed = event.flags.contains(.maskSecondaryFn)
+                    let fnChanged = fnPressed != manager.lastFnPressed
 
-                    Log.d("[HotkeyManager] flags: raw=\(rawFlags) dev=0x\(String(deviceFlags, radix: 16)) cmd=\(hasCmd) rightCmd=\(isRightCmd)")
+                    Log.d("[HotkeyManager] flags: raw=\(rawFlags) keyCode=\(keyCode) fn=\(fnPressed) fnChanged=\(fnChanged)")
 
                     Task { @MainActor in
-                        if isRightCmd && !manager.isKeyHeld {
-                            Log.d("[HotkeyManager] Right ⌘ DOWN → start")
+                        guard fnChanged else { return }
+                        manager.lastFnPressed = fnPressed
+
+                        if fnPressed && !manager.isKeyHeld {
+                            Log.d("[HotkeyManager] Fn DOWN → start")
                             manager.isKeyHeld = true
                             manager.onRecordStart?()
-                        } else if !isRightCmd && manager.isKeyHeld {
-                            Log.d("[HotkeyManager] Right ⌘ UP → stop")
+                        } else if !fnPressed && manager.isKeyHeld {
+                            Log.d("[HotkeyManager] Fn UP → stop")
                             manager.isKeyHeld = false
                             manager.onRecordStop?()
                         }
@@ -67,16 +72,15 @@ final class HotkeyManager: ObservableObject {
             runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
             CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
             CGEvent.tapEnable(tap: tap, enable: true)
-            Log.d("[HotkeyManager] CGEvent tap OK (Right ⌘ = push to talk)")
+            Log.d("[HotkeyManager] CGEvent tap OK (Fn = push to talk)")
         } else {
-            selfPtr.release()
             Log.d("[HotkeyManager] CGEvent tap FAILED → fallback to NSEvent monitor")
             setupFallbackMonitor()
         }
     }
 
     private func setupFallbackMonitor() {
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { event in
             Log.d("[HotkeyManager] NSEvent flags: raw=\(event.modifierFlags.rawValue)")
         }
     }
@@ -97,5 +101,7 @@ final class HotkeyManager: ObservableObject {
         }
         if let m = globalMonitor { NSEvent.removeMonitor(m); globalMonitor = nil }
         if let m = localMonitor { NSEvent.removeMonitor(m); localMonitor = nil }
+        lastFnPressed = false
+        isKeyHeld = false
     }
 }

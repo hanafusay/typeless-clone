@@ -39,7 +39,7 @@ struct TypelessCloneApp: App {
 
         Divider()
 
-        Text("🎤 右⌘キーを押しながら話す")
+        Text("🎤 fnキーを押しながら話す")
             .font(.caption)
 
         Button(speechManager.isRecording ? "⏹ 録音停止" : "🎙 手動で録音開始") {
@@ -52,7 +52,7 @@ struct TypelessCloneApp: App {
         .disabled(isProcessing)
 
         if !hotkeyManager.isAccessibilityGranted {
-            Text("⚠️ アクセシビリティ/入力監視を許可してください")
+            Text("⚠️ アクセシビリティを許可してください")
                 .font(.caption)
                 .foregroundColor(.red)
         }

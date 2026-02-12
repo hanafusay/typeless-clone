@@ -30,11 +30,6 @@ else
     echo "=== TCC reset skipped (set RESET_TCC=1 to reset Accessibility/Input Monitoring/PostEvent) ==="
 fi
 
-if [ -d "${INSTALL_DIR}/${APP_BUNDLE}" ]; then
-    rm -rf "${INSTALL_DIR}/${APP_BUNDLE}"
-    echo "  Removed old ${INSTALL_DIR}/${APP_BUNDLE}"
-fi
-
 # -------------------------------------------------------
 # 2. Build
 # -------------------------------------------------------
@@ -105,8 +100,12 @@ echo ""
 # 5. Install to /Applications
 # -------------------------------------------------------
 echo "=== Installing to ${INSTALL_DIR} ==="
-cp -R "${APP_BUNDLE}" "${INSTALL_DIR}/"
+ditto "${APP_BUNDLE}" "${INSTALL_DIR}/${APP_BUNDLE}"
 echo "  Installed to ${INSTALL_DIR}/${APP_BUNDLE}"
+
+# Keep /Applications as the only app location to avoid TCC confusion.
+rm -rf "${APP_BUNDLE}"
+echo "  Removed local ${APP_BUNDLE}"
 
 # -------------------------------------------------------
 # 6. Done
