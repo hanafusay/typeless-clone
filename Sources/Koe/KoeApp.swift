@@ -63,7 +63,7 @@ struct KoeApp: App {
 
         Divider()
 
-        Text("🎤 fnキーを押しながら話す")
+        Text("🎤 \(config.triggerKey.displayName)キーを押しながら話す")
             .font(.caption)
 
         Button(speechManager.isRecording ? "⏹ 録音停止" : "🎙 手動で録音開始") {

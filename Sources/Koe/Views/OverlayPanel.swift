@@ -201,9 +201,10 @@ struct OverlayView: View {
     }
 
     private var statusLabel: String {
+        let keyName = Config.shared.triggerKey.displayName
         switch state.status {
-        case .recording: return "録音中... fn を離すと確定"
-        case .recordingCorrection: return "修正モード: fn を離すと確定"
+        case .recording: return "録音中... \(keyName) を離すと確定"
+        case .recordingCorrection: return "修正モード: \(keyName) を離すと確定"
         case .recognizing: return "認識中..."
         case .rewriting: return "リライト中..."
         case .correcting: return "修正中..."

@@ -1,6 +1,44 @@
 import Cocoa
 import Carbon.HIToolbox
 
+enum TriggerKey: String, CaseIterable, Identifiable {
+    case fn
+    case rightOption
+    case rightCommand
+    case control
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .fn: return "fn"
+        case .rightOption: return "右 Option (⌥)"
+        case .rightCommand: return "右 Command (⌘)"
+        case .control: return "Control (⌃)"
+        }
+    }
+
+    var flagMask: CGEventFlags {
+        switch self {
+        case .fn: return .maskSecondaryFn
+        case .rightOption: return .maskAlternate
+        case .rightCommand: return .maskCommand
+        case .control: return .maskControl
+        }
+    }
+
+    /// Key codes used to distinguish left/right variants.
+    /// fn has no specific keyCode in flagsChanged events, so empty set means "skip keyCode check".
+    var keyCodes: Set<CGKeyCode> {
+        switch self {
+        case .fn: return []
+        case .rightOption: return [61]
+        case .rightCommand: return [54]
+        case .control: return [59, 62]
+        }
+    }
+}
+
 @MainActor
 final class HotkeyManager: ObservableObject {
     static let shared = HotkeyManager()
@@ -12,8 +50,8 @@ final class HotkeyManager: ObservableObject {
     private var runLoopSource: CFRunLoopSource?
     private var globalMonitor: Any?
     private var eventTapRefcon: UnsafeMutableRawPointer?
-    private var lastFnPressed = false
-    private var fnReleaseWatchdog: Timer?
+    private var lastKeyPressed = false
+    private var releaseWatchdog: Timer?
     private var pendingStopWorkItem: DispatchWorkItem?
     private var pendingStartWorkItem: DispatchWorkItem?
     private var comboKeyDetected = false
@@ -32,14 +70,16 @@ final class HotkeyManager: ObservableObject {
         isAccessibilityGranted = requestAccessibility()
         Log.d("[HotkeyManager] Accessibility trusted: \(isAccessibilityGranted)")
         Log.d("[HotkeyManager] Input Monitoring must be enabled for global key capture")
-        lastFnPressed = currentFnPressed()
+        lastKeyPressed = currentTriggerKeyPressed()
 
         setupEventTap()
         setupEventMonitors()
     }
 
-    private func currentFnPressed() -> Bool {
-        CGEventSource.flagsState(.combinedSessionState).contains(.maskSecondaryFn)
+    private func currentTriggerKeyPressed() -> Bool {
+        let triggerKey = Config.shared.triggerKey
+        let flags = CGEventSource.flagsState(.combinedSessionState)
+        return flags.contains(triggerKey.flagMask)
     }
 
     private func setupEventTap() {
@@ -69,7 +109,7 @@ final class HotkeyManager: ObservableObject {
                 if type == .flagsChanged {
                     let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
                     Task { @MainActor in
-                        manager.handleFnSignal(keyCode: keyCode, source: "tap")
+                        manager.handleKeySignal(keyCode: keyCode, source: "tap")
                     }
                 }
 
@@ -88,7 +128,7 @@ final class HotkeyManager: ObservableObject {
             runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
             CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
             CGEvent.tapEnable(tap: tap, enable: true)
-            Log.d("[HotkeyManager] CGEvent tap OK (Fn = push to talk)")
+            Log.d("[HotkeyManager] CGEvent tap OK (\(Config.shared.triggerKey.displayName) = push to talk)")
         } else {
             retainedSelf.release()
             eventTapRefcon = nil
@@ -99,57 +139,65 @@ final class HotkeyManager: ObservableObject {
     private func setupEventMonitors() {
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             Task { @MainActor in
-                self?.handleFnSignal(keyCode: CGKeyCode(event.keyCode), source: "global")
+                self?.handleKeySignal(keyCode: CGKeyCode(event.keyCode), source: "global")
             }
         }
     }
 
-    private func handleFnSignal(keyCode: CGKeyCode, source: String) {
-        let fnPressed = currentFnPressed()
-        let fnChanged = fnPressed != lastFnPressed
-        if !fnChanged {
-            if fnPressed {
+    private func handleKeySignal(keyCode: CGKeyCode, source: String) {
+        let triggerKey = Config.shared.triggerKey
+        let keyPressed = currentTriggerKeyPressed()
+
+        // For keys that distinguish left/right, verify keyCode matches.
+        // When flag is released while recording, always allow stop (safety).
+        if !triggerKey.keyCodes.isEmpty && keyPressed {
+            guard triggerKey.keyCodes.contains(keyCode) else { return }
+        }
+
+        let keyChanged = keyPressed != lastKeyPressed
+        if !keyChanged {
+            if keyPressed {
                 pendingStopWorkItem?.cancel()
                 pendingStopWorkItem = nil
             }
             return
         }
 
-        lastFnPressed = fnPressed
-        Log.d("[HotkeyManager] Fn state changed (\(source)) keyCode=\(keyCode) fn=\(fnPressed)")
+        lastKeyPressed = keyPressed
+        Log.d("[HotkeyManager] Key state changed (\(source)) keyCode=\(keyCode) key=\(triggerKey.rawValue) pressed=\(keyPressed)")
 
-        if fnPressed && !isKeyHeld {
+        if keyPressed && !isKeyHeld {
             pendingStopWorkItem?.cancel()
             pendingStopWorkItem = nil
 
             guard pendingStartWorkItem == nil else { return }
 
             comboKeyDetected = false
-            Log.d("[HotkeyManager] Fn DOWN → waiting \(pressThresholdSeconds)s threshold")
+            Log.d("[HotkeyManager] Key DOWN → waiting \(pressThresholdSeconds)s threshold")
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.pendingStartWorkItem = nil
                 self.stopThresholdKeyMonitor()
 
-                guard self.currentFnPressed(), !self.comboKeyDetected else {
-                    Log.d("[HotkeyManager] Fn released or combo detected before threshold → ignored")
+                guard self.currentTriggerKeyPressed(), !self.comboKeyDetected else {
+                    Log.d("[HotkeyManager] Key released or combo detected before threshold → ignored")
                     return
                 }
 
                 Log.d("[HotkeyManager] Threshold met → start")
                 self.isKeyHeld = true
                 self.onRecordStartHandler()
-                self.startFnReleaseWatchdog()
+                self.startReleaseWatchdog()
             }
             pendingStartWorkItem = workItem
             startThresholdKeyMonitor()
             DispatchQueue.main.asyncAfter(deadline: .now() + pressThresholdSeconds, execute: workItem)
-        } else if !fnPressed {
+        } else if !keyPressed {
             if let pending = pendingStartWorkItem {
                 pending.cancel()
                 pendingStartWorkItem = nil
                 stopThresholdKeyMonitor()
-                Log.d("[HotkeyManager] Fn released before threshold → cancelled")
+                Log.d("[HotkeyManager] Key released before threshold → cancelled")
             }
             if isKeyHeld {
                 requestDebouncedStop(source: source)
@@ -162,29 +210,29 @@ final class HotkeyManager: ObservableObject {
         AXIsProcessTrusted()
     }
 
-    private func startFnReleaseWatchdog() {
-        fnReleaseWatchdog?.invalidate()
-        fnReleaseWatchdog = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] timer in
+    private func startReleaseWatchdog() {
+        releaseWatchdog?.invalidate()
+        releaseWatchdog = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] timer in
             let capturedTimer = timer
             Task { @MainActor [weak self] in
                 guard let self else {
                     capturedTimer.invalidate()
                     return
                 }
-                let fnPressed = self.currentFnPressed()
-                if !fnPressed && self.isKeyHeld {
-                    self.lastFnPressed = false
+                let keyPressed = self.currentTriggerKeyPressed()
+                if !keyPressed && self.isKeyHeld {
+                    self.lastKeyPressed = false
                     self.requestDebouncedStop(source: "watchdog")
                 } else if !self.isKeyHeld {
-                    self.stopFnReleaseWatchdog()
+                    self.stopReleaseWatchdog()
                 }
             }
         }
     }
 
-    private func stopFnReleaseWatchdog() {
-        fnReleaseWatchdog?.invalidate()
-        fnReleaseWatchdog = nil
+    private func stopReleaseWatchdog() {
+        releaseWatchdog?.invalidate()
+        releaseWatchdog = nil
     }
 
     private func handleComboKeyDetected(source: String) {
@@ -222,32 +270,39 @@ final class HotkeyManager: ObservableObject {
             guard let self else { return }
             self.pendingStopWorkItem = nil
 
-            let stillReleased = !self.currentFnPressed()
+            let stillReleased = !self.currentTriggerKeyPressed()
             guard stillReleased, self.isKeyHeld else {
-                Log.d("[HotkeyManager] Ignored transient Fn UP (\(source))")
+                Log.d("[HotkeyManager] Ignored transient key UP (\(source))")
                 return
             }
 
-            Log.d("[HotkeyManager] Fn UP confirmed (\(source)) → stop")
-            self.lastFnPressed = false
+            Log.d("[HotkeyManager] Key UP confirmed (\(source)) → stop")
+            self.lastKeyPressed = false
             self.isKeyHeld = false
             Log.d("[HotkeyManager] Dispatching onRecordStop")
             self.onRecordStopHandler()
-            self.stopFnReleaseWatchdog()
+            self.stopReleaseWatchdog()
         }
 
         pendingStopWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + releaseDebounceSeconds, execute: workItem)
     }
 
-    func stop() {
+    func resetState() {
         pendingStartWorkItem?.cancel()
         pendingStartWorkItem = nil
         pendingStopWorkItem?.cancel()
         pendingStopWorkItem = nil
-        stopFnReleaseWatchdog()
+        stopReleaseWatchdog()
         stopThresholdKeyMonitor()
         comboKeyDetected = false
+        lastKeyPressed = false
+        isKeyHeld = false
+        Log.d("[HotkeyManager] State reset (triggerKey=\(Config.shared.triggerKey.rawValue))")
+    }
+
+    func stop() {
+        resetState()
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
             if let source = runLoopSource {
@@ -261,7 +316,5 @@ final class HotkeyManager: ObservableObject {
             eventTapRefcon = nil
         }
         if let m = globalMonitor { NSEvent.removeMonitor(m); globalMonitor = nil }
-        lastFnPressed = false
-        isKeyHeld = false
     }
 }

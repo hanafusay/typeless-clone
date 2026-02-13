@@ -13,6 +13,7 @@ final class Config: ObservableObject {
         static let rewritePrompt = "rewritePrompt"
         static let rewriteUserContext = "rewriteUserContext"
         static let audioInputDeviceUID = "audioInputDeviceUID"
+        static let triggerKey = "triggerKey"
     }
 
     static let maxUserContextLength = 400
@@ -82,6 +83,10 @@ final class Config: ObservableObject {
         didSet { defaults.set(audioInputDeviceUID, forKey: Keys.audioInputDeviceUID) }
     }
 
+    @Published var triggerKey: TriggerKey {
+        didSet { defaults.set(triggerKey.rawValue, forKey: Keys.triggerKey) }
+    }
+
     @Published var launchAtLogin: Bool {
         didSet {
             do {
@@ -121,6 +126,13 @@ final class Config: ObservableObject {
         self.launchAtLogin = SMAppService.mainApp.status == .enabled
 
         self.audioInputDeviceUID = defaults.string(forKey: Keys.audioInputDeviceUID) ?? ""
+
+        if let savedTriggerKey = defaults.string(forKey: Keys.triggerKey),
+           let key = TriggerKey(rawValue: savedTriggerKey) {
+            self.triggerKey = key
+        } else {
+            self.triggerKey = .fn
+        }
 
         self.rewriteUserContext = defaults.string(forKey: Keys.rewriteUserContext) ?? ""
 

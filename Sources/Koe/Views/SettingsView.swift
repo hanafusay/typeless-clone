@@ -96,14 +96,16 @@ struct SettingsView: View {
             }
 
             Section("操作方法") {
+                Picker("録音キー", selection: $config.triggerKey) {
+                    ForEach(TriggerKey.allCases) { key in
+                        Text(key.displayName).tag(key)
+                    }
+                }
+                .onChange(of: config.triggerKey) { _, _ in
+                    HotkeyManager.shared.resetState()
+                }
+
                 HStack {
-                    Text("録音キー:")
-                    Text("fn")
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(Color.gray.opacity(0.15))
-                        .cornerRadius(4)
                     Spacer()
                     Text("押しながら話す → 離すとペースト")
                         .foregroundColor(.secondary)
@@ -113,14 +115,16 @@ struct SettingsView: View {
                 HStack {
                     Text("テキスト修正:")
                     Spacer()
-                    Text("テキストを選択 → fn 押しながら指示 → 修正")
+                    Text("テキストを選択 → \(config.triggerKey.displayName) 押しながら指示 → 修正")
                         .foregroundColor(.secondary)
                         .font(.caption)
                 }
 
-                Text("⚠️ fn キーが絵文字ピッカーや音声入力を起動する場合は、\nシステム設定 → キーボード → 「🌐キーを押して」を「何もしない」に変更してください")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if config.triggerKey == .fn {
+                    Text("⚠️ fn キーが絵文字ピッカーや音声入力を起動する場合は、\nシステム設定 → キーボード → 「🌐キーを押して」を「何もしない」に変更してください")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section("権限") {
