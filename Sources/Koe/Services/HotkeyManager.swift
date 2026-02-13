@@ -16,6 +16,8 @@ final class HotkeyManager: ObservableObject {
     private var fnReleaseWatchdog: Timer?
     private var pendingStopWorkItem: DispatchWorkItem?
     private var pendingStartWorkItem: DispatchWorkItem?
+    private var comboKeyDetected = false
+    private var thresholdKeyMonitor: Any?
     private let releaseDebounceSeconds: TimeInterval = 0.18
     private let pressThresholdSeconds: TimeInterval = 0.3
     private var onRecordStartHandler: () -> Void = {}
@@ -42,6 +44,7 @@ final class HotkeyManager: ObservableObject {
 
     private func setupEventTap() {
         let eventMask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
+            | (1 << CGEventType.keyDown.rawValue)
         let retainedSelf = Unmanaged.passRetained(self)
         let refcon = retainedSelf.toOpaque()
         eventTapRefcon = refcon
@@ -67,6 +70,12 @@ final class HotkeyManager: ObservableObject {
                     let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
                     Task { @MainActor in
                         manager.handleFnSignal(keyCode: keyCode, source: "tap")
+                    }
+                }
+
+                if type == .keyDown {
+                    Task { @MainActor in
+                        manager.handleComboKeyDetected(source: "tap-keyDown")
                     }
                 }
 
@@ -115,13 +124,15 @@ final class HotkeyManager: ObservableObject {
 
             guard pendingStartWorkItem == nil else { return }
 
+            comboKeyDetected = false
             Log.d("[HotkeyManager] Fn DOWN → waiting \(pressThresholdSeconds)s threshold")
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.pendingStartWorkItem = nil
+                self.stopThresholdKeyMonitor()
 
-                guard self.currentFnPressed() else {
-                    Log.d("[HotkeyManager] Fn released before threshold → ignored")
+                guard self.currentFnPressed(), !self.comboKeyDetected else {
+                    Log.d("[HotkeyManager] Fn released or combo detected before threshold → ignored")
                     return
                 }
 
@@ -131,11 +142,13 @@ final class HotkeyManager: ObservableObject {
                 self.startFnReleaseWatchdog()
             }
             pendingStartWorkItem = workItem
+            startThresholdKeyMonitor()
             DispatchQueue.main.asyncAfter(deadline: .now() + pressThresholdSeconds, execute: workItem)
         } else if !fnPressed {
             if let pending = pendingStartWorkItem {
                 pending.cancel()
                 pendingStartWorkItem = nil
+                stopThresholdKeyMonitor()
                 Log.d("[HotkeyManager] Fn released before threshold → cancelled")
             }
             if isKeyHeld {
@@ -174,6 +187,34 @@ final class HotkeyManager: ObservableObject {
         fnReleaseWatchdog = nil
     }
 
+    private func handleComboKeyDetected(source: String) {
+        guard pendingStartWorkItem != nil else { return }
+        Log.d("[HotkeyManager] Combo key detected (\(source)) → cancelling pending start")
+        comboKeyDetected = true
+        pendingStartWorkItem?.cancel()
+        pendingStartWorkItem = nil
+        stopThresholdKeyMonitor()
+    }
+
+    private func startThresholdKeyMonitor() {
+        stopThresholdKeyMonitor()
+        thresholdKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .systemDefined) { [weak self] event in
+            // subtype 8 = メディアキー (音量・輝度など)
+            if event.subtype.rawValue == 8 {
+                Task { @MainActor [weak self] in
+                    self?.handleComboKeyDetected(source: "systemDefined-media")
+                }
+            }
+        }
+    }
+
+    private func stopThresholdKeyMonitor() {
+        if let m = thresholdKeyMonitor {
+            NSEvent.removeMonitor(m)
+            thresholdKeyMonitor = nil
+        }
+    }
+
     private func requestDebouncedStop(source: String) {
         guard pendingStopWorkItem == nil else { return }
 
@@ -205,6 +246,8 @@ final class HotkeyManager: ObservableObject {
         pendingStopWorkItem?.cancel()
         pendingStopWorkItem = nil
         stopFnReleaseWatchdog()
+        stopThresholdKeyMonitor()
+        comboKeyDetected = false
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
             if let source = runLoopSource {

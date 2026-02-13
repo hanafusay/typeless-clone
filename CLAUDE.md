@@ -16,6 +16,44 @@
   - `refactor:` — 機能変更を伴わないリファクタリング
 - `feat:` と `fix:` はリリースノートに自動掲載されるため、エンドユーザーに伝わる内容で書く
 
+## リリース
+
+- PRに `feat:` または `fix:` コミットが含まれる場合、マージ後にリリースタグを打つこと
+- タグは semver 形式（`v1.x.x`）。`feat:` はマイナーバージョン、`fix:` はパッチバージョンを上げる
+- タグを push すると GitHub Actions（`.github/workflows/release.yml`）が DMG ビルド → GitHub Release 作成まで自動実行される
+
+```bash
+# 例: 現在 v1.4.0 で fix: を含むPRをマージした場合
+git checkout main && git pull
+git tag v1.4.1
+git push origin v1.4.1
+```
+
+## ローカル動作確認手順
+
+Koe はメニューバー常駐アプリ（`.app` バンドル必須）のため、デバッグバイナリの直接実行は不可。
+`/Applications/Koe.app` のバイナリを差し替えて確認する。
+
+```bash
+# 1. ビルド
+swift build
+
+# 2. 既存アプリを終了
+killall Koe
+
+# 3. バイナリを差し替え（.app 内に .bak 等の余計なファイルを置かないこと）
+cp .build/debug/Koe /Applications/Koe.app/Contents/MacOS/Koe
+
+# 4. コード署名し直す（署名が壊れるとアクセシビリティ権限が無効になる）
+codesign --force --sign - /Applications/Koe.app
+
+# 5. アプリを起動
+open /Applications/Koe.app
+```
+
+- 署名が変わった場合、**システム設定 → プライバシーとセキュリティ → アクセシビリティ** で Koe を再許可する必要がある
+- アクセシビリティ権限がないと Cmd+V によるペースト操作が動作しない
+
 ## Swift開発ガイドライン参照ドキュメント
 
 ### デザイン（UI/UX）
