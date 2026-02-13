@@ -7,6 +7,10 @@ enum Log {
         return FileHandle(forWritingAtPath: path)
     }()
 
+    static let appVersion: String = {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+    }()
+
     static func d(_ message: String) {
         let timestamp = ISO8601DateFormatter().string(from: Date())
         let line = "[\(timestamp)] \(message)\n"
