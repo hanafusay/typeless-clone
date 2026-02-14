@@ -14,6 +14,7 @@ final class DictationCoordinator: ObservableObject {
     private let overlay: OverlayPanel
 
     private var selectedTextForCorrection: String?
+    private var completionTask: Task<Void, Never>?
     private var partialTextTask: Task<Void, Never>?
     private var overlayDismissTask: Task<Void, Never>?
 
@@ -46,6 +47,8 @@ final class DictationCoordinator: ObservableObject {
             Log.d("[DictationCoordinator] Ignored start because recording is already active")
             return
         }
+        completionTask?.cancel()
+        completionTask = nil
         overlayDismissTask?.cancel()
         overlayDismissTask = nil
         stopPartialTextUpdates()
@@ -91,7 +94,8 @@ final class DictationCoordinator: ObservableObject {
         selectedTextForCorrection = nil
         Log.d("[DictationCoordinator] stopRecording correctionText=\(correctionText != nil ? "\(correctionText!.count) chars" : "nil")")
 
-        Task {
+        completionTask?.cancel()
+        completionTask = Task {
             await completeRecognition(correctionText: correctionText)
         }
     }
@@ -145,6 +149,8 @@ final class DictationCoordinator: ObservableObject {
             pasteService.paste(text: corrected)
             statusText = "完了"
             overlay.updateStatus(.done, text: corrected)
+        } catch where error is CancellationError {
+            return 0
         } catch {
             statusText = "修正エラー"
             overlay.updateStatus(.error, text: error.localizedDescription)
@@ -170,6 +176,8 @@ final class DictationCoordinator: ObservableObject {
             pasteService.paste(text: rewritten)
             statusText = "完了"
             overlay.updateStatus(.done, text: rewritten)
+        } catch where error is CancellationError {
+            return 0
         } catch {
             statusText = "リライトエラー"
             overlay.updateStatus(.error, text: error.localizedDescription)
@@ -188,7 +196,7 @@ final class DictationCoordinator: ObservableObject {
     }
 
     private func buildSystemPrompt(basePrompt: String) -> String {
-        let userContext = config.rewriteUserContext.trimmingCharacters(in: .whitespacesAndNewlines)
+        let userContext = config.userContext.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !userContext.isEmpty else {
             return basePrompt
         }

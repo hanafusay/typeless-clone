@@ -57,7 +57,7 @@ final class HotkeyManager: ObservableObject {
     private var comboKeyDetected = false
     private var thresholdKeyMonitor: Any?
     private let releaseDebounceSeconds: TimeInterval = 0.18
-    private let pressThresholdSeconds: TimeInterval = 0.3
+    private let pressThresholdSeconds: TimeInterval = 0.5
     private var onRecordStartHandler: () -> Void = {}
     private var onRecordStopHandler: () -> Void = {}
 

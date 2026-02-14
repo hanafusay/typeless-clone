@@ -11,7 +11,7 @@ final class Config: ObservableObject {
         static let recognitionLanguage = "recognitionLanguage"
         static let rewriteEnabled = "rewriteEnabled"
         static let rewritePrompt = "rewritePrompt"
-        static let rewriteUserContext = "rewriteUserContext"
+        static let userContext = "rewriteUserContext"
         static let audioInputDeviceUID = "audioInputDeviceUID"
         static let triggerKey = "triggerKey"
     }
@@ -75,8 +75,8 @@ final class Config: ObservableObject {
         didSet { defaults.set(rewritePrompt, forKey: Keys.rewritePrompt) }
     }
 
-    @Published var rewriteUserContext: String {
-        didSet { defaults.set(rewriteUserContext, forKey: Keys.rewriteUserContext) }
+    @Published var userContext: String {
+        didSet { defaults.set(userContext, forKey: Keys.userContext) }
     }
 
     @Published var audioInputDeviceUID: String {
@@ -134,7 +134,7 @@ final class Config: ObservableObject {
             self.triggerKey = .fn
         }
 
-        self.rewriteUserContext = defaults.string(forKey: Keys.rewriteUserContext) ?? ""
+        self.userContext = defaults.string(forKey: Keys.userContext) ?? ""
 
         let savedPrompt = defaults.string(forKey: Keys.rewritePrompt)
         if let savedPrompt {

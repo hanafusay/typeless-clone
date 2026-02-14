@@ -11,7 +11,7 @@ protocol DictationConfigProviding: AnyObject {
     var rewriteEnabled: Bool { get }
     var geminiAPIKey: String { get }
     var rewritePrompt: String { get }
-    var rewriteUserContext: String { get }
+    var userContext: String { get }
     var correctionPrompt: String { get }
 }
 
