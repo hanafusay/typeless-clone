@@ -1,6 +1,10 @@
 import Cocoa
 
 final class PasteService {
+    static let shared = PasteService()
+
+    private init() {}
+
     /// Retrieve the currently selected text from the focused application via Accessibility API.
     static func getSelectedText() -> String? {
         guard AXIsProcessTrusted() else {
@@ -78,5 +82,16 @@ final class PasteService {
         let cmdUp = CGEvent(keyboardEventSource: source, virtualKey: commandKey, keyDown: false)
         cmdUp?.post(tap: .cgAnnotatedSessionEventTap)
         Log.d("[PasteService] Cmd+V posted")
+    }
+}
+
+@MainActor
+extension PasteService: PasteServing {
+    func getSelectedText() -> String? {
+        Self.getSelectedText()
+    }
+
+    func paste(text: String) {
+        Self.paste(text: text)
     }
 }

@@ -12,16 +12,37 @@ final class DictationCoordinator: ObservableObject {
     @Published private(set) var statusText: String = "待機中"
     @Published private(set) var isProcessing: Bool = false
 
-    private let speechManager = SpeechManager.shared
-    private let config = Config.shared
-    private let geminiService: GeminiTextTransforming = GeminiService()
-    private let overlay = OverlayPanel()
+    private let speechManager: SpeechManager
+    private let config: DictationConfigProviding
+    private let geminiService: GeminiTextTransforming
+    private let pasteService: PasteServing
+    private let overlay: OverlayPanel
 
     private var selectedTextForCorrection: String?
     private var partialTextTask: Task<Void, Never>?
     private var overlayDismissTask: Task<Void, Never>?
 
-    private init() {}
+    private init() {
+        self.speechManager = .shared
+        self.config = Config.shared
+        self.geminiService = GeminiService()
+        self.pasteService = PasteService.shared
+        self.overlay = OverlayPanel()
+    }
+
+    init(
+        speechManager: SpeechManager,
+        config: DictationConfigProviding,
+        geminiService: GeminiTextTransforming,
+        pasteService: PasteServing,
+        overlay: OverlayPanel
+    ) {
+        self.speechManager = speechManager
+        self.config = config
+        self.geminiService = geminiService
+        self.pasteService = pasteService
+        self.overlay = overlay
+    }
 
     func startRecording() {
         Log.d("[DictationCoordinator] startRecording called (isProcessing=\(isProcessing), isRecording=\(speechManager.isRecording))")
@@ -34,7 +55,7 @@ final class DictationCoordinator: ObservableObject {
         overlayDismissTask = nil
         stopPartialTextUpdates()
 
-        let selected = PasteService.getSelectedText()
+        let selected = pasteService.getSelectedText()
         selectedTextForCorrection = selected
         Log.d("[DictationCoordinator] Selected text for correction: \(selected != nil ? "\(selected!.count) chars" : "none")")
 
@@ -123,10 +144,10 @@ final class DictationCoordinator: ObservableObject {
             let corrected = try await geminiService.correct(
                 selectedText: selectedText,
                 instruction: instruction,
-                systemPrompt: buildSystemPrompt(basePrompt: Config.defaultCorrectionPrompt),
+                systemPrompt: buildSystemPrompt(basePrompt: config.correctionPrompt),
                 apiKey: config.geminiAPIKey
             )
-            PasteService.paste(text: corrected)
+            pasteService.paste(text: corrected)
             statusText = "完了"
             overlay.updateStatus(.done, text: corrected)
         } catch {
@@ -151,13 +172,13 @@ final class DictationCoordinator: ObservableObject {
                 systemPrompt: buildSystemPrompt(basePrompt: config.rewritePrompt),
                 apiKey: config.geminiAPIKey
             )
-            PasteService.paste(text: rewritten)
+            pasteService.paste(text: rewritten)
             statusText = "完了"
             overlay.updateStatus(.done, text: rewritten)
         } catch {
             statusText = "リライトエラー"
             overlay.updateStatus(.error, text: error.localizedDescription)
-            PasteService.paste(text: recognizedText)
+            pasteService.paste(text: recognizedText)
         }
 
         return 1.5
@@ -165,7 +186,7 @@ final class DictationCoordinator: ObservableObject {
 
     private func applyPlainMode(recognizedText: String) -> Double {
         Log.d("[DictationCoordinator] Entering PLAIN DICTATION mode")
-        PasteService.paste(text: recognizedText)
+        pasteService.paste(text: recognizedText)
         statusText = "完了"
         overlay.updateStatus(.done, text: recognizedText)
         return 1.5

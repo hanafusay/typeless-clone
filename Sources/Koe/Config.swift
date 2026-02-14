@@ -183,3 +183,10 @@ final class Config: ObservableObject {
         return nil
     }
 }
+
+@MainActor
+extension Config: DictationConfigProviding {
+    var correctionPrompt: String {
+        Self.defaultCorrectionPrompt
+    }
+}
