@@ -163,16 +163,4 @@ struct OverlayView: View {
         case .error: return "エラー"
         }
     }
-
-    private var statusColor: Color {
-        switch state.status {
-        case .recording: return .red
-        case .recordingCorrection: return .purple
-        case .recognizing: return .blue
-        case .rewriting: return .purple
-        case .correcting: return .purple
-        case .done: return .green
-        case .error: return .orange
-        }
-    }
 }
