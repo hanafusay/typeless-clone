@@ -115,6 +115,10 @@ tccutil reset PostEvent com.koe.app
 
 ## 開発者向け
 
+### 設計ドキュメント
+
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+
 ### 前提環境
 
 - macOS 14 以上

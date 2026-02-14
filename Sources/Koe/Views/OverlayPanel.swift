@@ -33,7 +33,7 @@ final class OverlayPanel: NSPanel {
 
     /// Show the overlay near the text caret or mouse cursor
     func showNearCursor() {
-        let position = NSEvent.mouseLocation
+        let position = getCaretPosition() ?? NSEvent.mouseLocation
         let screen = NSScreen.screens.first(where: { NSMouseInRect(position, $0.frame, false) }) ?? NSScreen.main!
         let visibleFrame = screen.visibleFrame
 
