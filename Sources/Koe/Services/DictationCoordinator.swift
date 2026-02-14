@@ -149,6 +149,8 @@ final class DictationCoordinator: ObservableObject {
             pasteService.paste(text: corrected)
             statusText = "完了"
             overlay.updateStatus(.done, text: corrected)
+        } catch where error is CancellationError {
+            return 0
         } catch {
             statusText = "修正エラー"
             overlay.updateStatus(.error, text: error.localizedDescription)
@@ -174,6 +176,8 @@ final class DictationCoordinator: ObservableObject {
             pasteService.paste(text: rewritten)
             statusText = "完了"
             overlay.updateStatus(.done, text: rewritten)
+        } catch where error is CancellationError {
+            return 0
         } catch {
             statusText = "リライトエラー"
             overlay.updateStatus(.error, text: error.localizedDescription)
